@@ -5,7 +5,6 @@
 var WIDTH = 700, HEIGHT = 600, pi = Math.PI;
 var NS="http://www.w3.org/2000/svg";
 var ai, player, puck, svg, score;
-var mouseState;
 var pPt = 0, aPt = 0;
 var goal1, goal2;
 var requestID;
@@ -17,8 +16,12 @@ ai = {
 	radius:50,
 
 	update:function(){
-		var idealy = puck.y - (this.radius - puck.radius)*0.5;
-		this.y += (idealy - this.y)*0.1;
+		var idealx = puck.x - (this.radius - puck.radius)*0.5;
+		this.x += (idealx - this.x)*0.5;
+		this.x = Math.max(Math.min(this.x, WIDTH-this.radius), 2*this.radius + WIDTH/2);
+
+		var idealy = puck.y - (this.radius - puck.radius)*0.01;
+		this.y += (idealy - this.y)*0.5;
 		this.y = Math.max(Math.min(this.y, HEIGHT-this.radius), this.radius);
 	},
 	draw:function(){
@@ -45,11 +48,11 @@ puck = {
 	obj:null,
 	velocity:null,
 	radius:10,
-	speed:2,
+	speed:6, //ideally 5
 
-	start:function() {
+	start:function(side) {
 		var rand = Math.random();
-		this.x = player.x + player.radius;
+		this.x = side===1 ? player.x + player.radius: ai.x - this.radius;
 		this.y = (HEIGHT - this.radius) * rand;
 		var phi = 0.1*pi*(1-2*rand);
 		this.velocity = {
@@ -61,7 +64,7 @@ puck = {
 		this.x += this.velocity.x;
 		this.y += this.velocity.y;
 
-		if (this.radius > this.y || this.y+this.radius > HEIGHT) {
+		if (this.radius > this.y || this.y + this.radius > HEIGHT) {
 			this.velocity.y *= -1;
 		}
 
@@ -69,7 +72,7 @@ puck = {
 			return x < px + pr && y < py + r && px < x + r && py < y + r;
 		};
 
-		var pddle = this.velocity.x < 0 ? player: ai;
+		var pddle = this.velocity.x < 0 || this.x < WIDTH/2 ? player: ai;
 
 		if (Intersect(pddle.x, pddle.y, pddle.radius, this.x, this.y, this.radius)) {
 
@@ -79,7 +82,7 @@ puck = {
 
 			var phi = pi/4 * (2*num - 1);
 
-			var pwr = Math.abs(phi) > 0.2 * pi ? 1.5 : 1;
+			var pwr = Math.abs(phi) > 0.2 * pi ? 1.5 : 2;
 			this.velocity.x = pwr*(pddle===player ? 1 : -1)*this.speed*Math.cos(phi);
 			this.velocity.y = pwr*this.speed*Math.sin(phi);
 
@@ -87,7 +90,7 @@ puck = {
 		if (inG1() || inG2()) {
 			if (requestID)
 				window.cancelAnimationFrame(requestID);
-			this.start();
+			this.start(pddle===player? 1 : -1);
 		}
 		else if ((0 > this.x - this.radius && (this.y - this.radius < goal1.y1 || this.y + this.radius > goal1.y2)) || 
 			(this.x + this.radius > WIDTH && (this.y - this.radius < goal2.y1 || this.y + this.radius > goal2.y2))) {
@@ -146,16 +149,15 @@ function modifyScore(player) {
 	if (player) {
 		aPt += 1;
 		var text = document.getElementById("score");
-		var newScore = document.createTextNode(pPt + "               " + aPt);
+		var newScore = document.createTextNode(pPt + "             " + aPt);
 		text.replaceChild(newScore, text.childNodes[0]);
 	}
 
 	else {
 		pPt += 1;
 		var text = document.getElementById("score");
-		var newScore = document.createTextNode(pPt + "               " + aPt);
+		var newScore = document.createTextNode(pPt + "             " + aPt);
 		text.replaceChild(newScore, text.childNodes[0]);
-
 	}
 }
 function inG1(){
@@ -168,8 +170,8 @@ function inG1(){
 }
 
 function inG2() {
-	var inG2 = this.y - this.radius > goal2.y1 && this.y + radius <= goal2.y2;
-	var p2 = this.x + this.radius > WIDTH;
+	var p2 = puck.x + puck.radius > WIDTH;
+	var inG2 = puck.y - puck.radius > goal2.y1 && puck.y + puck.radius <= goal2.y2;
 	var condition = p2 && inG2;
 	if (condition)
 		modifyScore(0);
@@ -181,7 +183,6 @@ function createText(x, y, color, T_id, TN_id) {
 	text.setAttributeNS(null, "id", TN_id);
 	text.setAttributeNS(null, "x", x);
 	text.setAttributeNS(null, "y", y);
-	text.setAttributeNS(null, "textLength", WIDTH);
 	text.style.color = color;
 
 	var textNode = document.createTextNode("Player  vs   Computer");
@@ -191,9 +192,9 @@ function createText(x, y, color, T_id, TN_id) {
 	text2.setAttributeNS(null, "id", T_id);
 	text2.setAttributeNS(null, "x", x);
 	text2.setAttributeNS(null, "y", y + 50);
-	text2.setAttributeNS(null, "textLength", WIDTH);
+	text2.setAttributeNS(null, "textLength", score.getAttribute("width"));
 	text2.style.color = color;
-	var textNode2 = document.createTextNode("0        0");
+	var textNode2 = document.createTextNode(pPt + "            " + aPt);
 	text2.appendChild(textNode2);
 	score = addSVGObject(score, text);
 	score = addSVGObject(score, text2);
@@ -208,7 +209,6 @@ var SVG = function(w,h, id) {
 };
 
 function update() {
-	//player.update();
 	ai.update();
 	puck.update();
 }
@@ -233,25 +233,22 @@ function init() {
 
 	var circle = Circle(player.x, player.y, player.radius, "blue", "player", "none");
 
-	mouseState = {};
-
 	svg.addEventListener("mousemove", function(evt) {
-		player.x = evt.clientX;
-		player.y = evt.clientY;
-
-		player.x = Math.max(Math.min(player.x, WIDTH/2 - player.radius), player.radius + ai.radius);
-		player.y = Math.max(Math.min(player.y, HEIGHT - player.radius), player.radius);
+		player.x = evt.clientX - 500 + player.radius;
+		player.y = evt.clientY - 267 + player.radius;
+		player.x = Math.max(Math.min(player.x, WIDTH/2 - player.radius), player.radius);
+		player.y = Math.max(Math.min(player.y, HEIGHT - player.radius), 0);
 	});
 
 	ai.x = WIDTH - (player.radius + ai.radius);
 	ai.y = (HEIGHT- ai.radius);
 
-	var circle2 = Circle(ai.x, ai.y, ai.radius, "cyan", "ai", "none");
+	var circle2 = Circle(ai.x, ai.y, ai.radius, "#0099ff", "ai", "none");
 
 	puck.x = (WIDTH - puck.radius) / 2;
 	puck.y = (HEIGHT - puck.radius) / 2;
 
-	var pCircle = Circle(puck.x, puck.y, puck.radius, "red", "puck", "none");
+	var pCircle = Circle(puck.x, puck.y, puck.radius, "lime", "puck", "none");
 	
 	svg = addSVGObject(svg, circle);
 	svg = addSVGObject(svg, circle2);
@@ -265,12 +262,10 @@ function init() {
 }
 
 function main() {
-	score = SVG(WIDTH, 200, "scoreBoard");
+	score = SVG(200, 200, "scoreBoard");
 	svg = SVG(WIDTH, HEIGHT, "mySvg");
 
 	document.body.appendChild(score);
-	document.body.appendChild(document.createElement("br"));
-	document.body.appendChild(document.createElement("br"));
 	document.body.appendChild(svg);
 
 	init();
@@ -279,12 +274,22 @@ function main() {
 	var game = function() {
 		update();
 		draw();
-		if (!(Math.abs(aPt - pPt) >= 5))
+		if (!(Math.abs(aPt - pPt) >= 5) || aPt < 5 && pPt < 5)
 			requestID = window.requestAnimationFrame(game, svg);
 		else{
 			window.cancelAnimationFrame(requestID);
 			var value = confirm("Play Again?");
-			console.log(value);
+			if (value) {
+				aPt = 0;
+				pPt = 0;
+				var text = document.getElementById("score");
+				var newScore = document.createTextNode(pPt + "             " + aPt);
+				text.replaceChild(newScore, text.childNodes[0]);
+				requestID = window.requestAnimationFrame(game, svg);
+			}
+			else {
+				window.close();
+			}
 		}
 	};
 	requestID = window.requestAnimationFrame(game, svg);
