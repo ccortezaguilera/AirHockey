@@ -2,6 +2,7 @@
  * @author: Carlos Aguilera
  **/
 
+/*Global Variables for setup*/
 var WIDTH = 700, HEIGHT = 600, pi = Math.PI;
 var NS="http://www.w3.org/2000/svg";
 var ai, player, puck, svg, score;
@@ -9,6 +10,8 @@ var pPt = 0, aPt = 0;
 var goal1, goal2;
 var requestID;
 
+/* ai:
+ * Basic ai for reacting according to the puck. Has its own draw function.*/
 ai = {
 	x:null,
 	y:null,
@@ -30,6 +33,14 @@ ai = {
 		ai.cy.baseVal.value = this.y;
 	}
 };
+
+/* Player:
+ * The player object for the user.
+ * x: the x coordinate of the center of the svg.
+ * y: the y coordinate of the center of the svg.
+ * radius: the radius of the striker.
+ * draw: the function for drawing the svg.
+ */
 player = {
 	x:null,
 	y:null,
@@ -42,6 +53,19 @@ player = {
 		player.cy.baseVal.value = this.y;
 	}
 };
+
+/* puck:
+ * The puck to be played with by both strikers.
+ * x: the x coordinate of the center of the svg.
+ * y: the y coordinate of the center of the svg.
+ * velocity: the velocity of the puck.
+ * radius: the radius of the puck.
+ * speed: the speed of the puck.
+ * start: the function of where the puck is initialized at the start of each point.
+ * update: the function that updates the puck after every movement or hit.
+ * draw: the function that draws the svg with the updated information.
+ */
+
 puck = {
 	x:null,
 	y:null,
@@ -104,6 +128,11 @@ puck = {
 	}
 };
 
+/* goal1 & goal 2
+ * locations of where each respective goal is contained.
+ * Each goal has an x and y component of the two endpoints of the goaline.
+ */
+
 goal1 = {
 	x1: 0,
 	y1: HEIGHT/2 - 50,
@@ -118,6 +147,8 @@ goal2 = {
 	y2: HEIGHT/2 + 110,
 	strokeWidth:6
 };
+
+
 function line(x1, y1, x2, y2, stroke, strokeWidth) {
 	var line = document.createElementNS(NS, "line");
 	line.x1.baseVal.value = x1;
