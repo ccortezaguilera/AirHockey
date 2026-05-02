@@ -87,14 +87,23 @@ puck = {
 	update:function() {
 		this.x += this.velocity.x;
 		this.y += this.velocity.y;
+		
+		if (this.y - this.radius < 0) {
+	  this.y = this.radius;
+	  this.velocity.y *= -1;
+  } else if (this.y + this.radius > HEIGHT) {
+	  this.y = HEIGHT - this.radius;
+	  this.velocity.y *= -1;
+  }
 
-		if (this.radius > this.y || this.y + this.radius > HEIGHT) {
-			this.velocity.y *= -1;
-		}
+		var Intersect = function(x1, y1, r1, x2, y2, r2) {
+	   const dx = x2 - x1;
+	   const dy = y2 - y1;
+	   const distSq = dx * dx + dy * dy;
+	   const radiusSum = r1 + r2;
 
-		var Intersect = function(x, y, r, px, py, pr) {
-			return x < px + pr && y < py + r && px < x + r && py < y + r;
-		};
+	   return distSq <= radiusSum * radiusSum;
+  };
 
 		var pddle = this.velocity.x < 0 || this.x < WIDTH/2 ? player: ai;
 
